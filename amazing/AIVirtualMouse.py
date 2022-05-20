@@ -4,24 +4,26 @@ import module.HandTrackingModule as htm
 import time
 import autopy
 
-
 ##########################
 wCam, hCam = 640, 480
-frameR = 100 # Frame Reduction
-smoothening = 7
+frameR = 100  # Frame Reduction
+smoothening = 10   # adjust the best value
 #########################
-
-pTime = 0
-plocX, plocY = 0, 0
-clocX, clocY = 0, 0
 
 cap = cv2.VideoCapture(0)
 cap.set(3, wCam)
 cap.set(4, hCam)
-detector = htm.handDetector(maxHands=1)
-wScr, hScr = autopy.screen.size()
+
+detector = htm.handDetector(maxHands=1,detectionCon=0.8)
+
+wScr, hScr = autopy.screen.size()  # screen size
 # print(wScr, hScr)
 
+# Smoothen Values
+plocX, plocY = 0, 0   # previous location
+clocX, clocY = 0, 0   # current location
+
+pTime = 0
 while True:
     # 1. Find hand Landmarks
     success, img = cap.read()
@@ -48,27 +50,26 @@ while True:
             clocX = plocX + (x3 - plocX) / smoothening
             clocY = plocY + (y3 - plocY) / smoothening
 
-        # 7. Move Mouse
-        autopy.mouse.move(wScr - clocX, clocY)
-        cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
-        plocX, plocY = clocX, clocY
+            # 7. Move Mouse
+            autopy.mouse.move(wScr - clocX, clocY)
+            cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
+            plocX, plocY = clocX, clocY
 
         # 8. Both Index and middle fingers are up : Clicking Mode
         if fingers[1] == 1 and fingers[2] == 1:
             # 9. Find distance between fingers
             length, img, lineInfo = detector.findDistance(8, 12, img)
-            print(length)
+            # print(length)
             # 10. Click mouse if distance short
             if length < 40:
-                cv2.circle(img, (lineInfo[4], lineInfo[5]),15, (0, 255, 0), cv2.FILLED)
+                cv2.circle(img, (lineInfo[4], lineInfo[5]), 15, (0, 255, 0), cv2.FILLED)
                 autopy.mouse.click()
 
-        # 11. Frame Rate
-        cTime = time.time()
-        fps = 1 / (cTime - pTime)
-        pTime = cTime
-        cv2.putText(img, str(int(fps)), (20, 50), cv2.FONT_HERSHEY_PLAIN, 3,
-        (255, 0, 0), 3)
-        # 12. Display
-        cv2.imshow("Image", img)
-        cv2.waitKey(1)
+    # 11. Frame Rate
+    cTime = time.time()
+    fps = 1 / (cTime - pTime)
+    pTime = cTime
+    cv2.putText(img, "FPS:" + str(int(fps)), (20, 50), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 3)
+    # 12. Display
+    cv2.imshow("Image", img)
+    cv2.waitKey(1)
